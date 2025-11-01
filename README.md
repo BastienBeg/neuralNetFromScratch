@@ -1,3 +1,5 @@
+[![Aperçu du rapport](./preview.png)](./Neural%20Network%20Training%20Visualizer.pdf)
+
 # neuralNetFromScratch
 
 Ce projet a un but purement pédagogique. Il consiste à implémenter un réseau de neurones artificiels à partir de zéro en Python, sans utiliser de bibliothèques spécialisées comme TensorFlow ou PyTorch. L'objectif est de comprendre les concepts fondamentaux derrière les réseaux de neurones, y compris la propagation avant, la rétropropagation et l'optimisation.
@@ -5,26 +7,27 @@ Ce projet a un but purement pédagogique. Il consiste à implémenter un réseau
 ## Structure du projet
 
 La structure du projet est organisée de la manière suivante :
-
+```text
 neuralNetFromScratch/
 ├── LICENSE
 ├── Neural Network Training Visualizer.pdf
 ├── README.md
 ├── requirements.txt
-└──source
-   └──app.py
-   └──config.py
-   └──data_loader.py
-   └──main.py
-   └──neural_net.py
-   └──train.py
-   └──explore_data
-      └──explore_data.ipynb       
-   └──templates
-      └──index.html
-      └──styles.css      
-    └──model
-       └──breast_cancer_model.npz    
+└── source
+    ├── app.py
+    ├── config.py
+    ├── data_loader.py
+    ├── main.py
+    ├── neural_net.py
+    ├── train.py
+    ├── explore_data
+    │   └── explore_data.ipynb
+    ├── templates
+    │   ├── index.html
+    │   └── styles.css
+    └── model
+        └── breast_cancer_model.npz
+```
 
 Dans ce projet, les fichiers principaux sont :
 - `neural_net.py` : Contient l'implémentation du réseau de neurones, y compris les fonctions de propagation avant et de rétropropagation.
