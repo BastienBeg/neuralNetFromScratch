@@ -1,6 +1,6 @@
 class Config:
     learning_rate = 0.01
-    epochs = 100
+    epochs = 2000
     batch_size = 32
     input_size = 30  # Nombre de features dans le dataset Breast Cancer
     output_size = 1  # Classification binaire

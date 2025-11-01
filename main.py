@@ -1,5 +1,7 @@
 from neural_net import NeuralNet
 from config import Config
+from train import trainer
+from data_loader import DataLoader
 import numpy as np
 
 if __name__ == "__main__":
@@ -13,7 +15,9 @@ if __name__ == "__main__":
     for key in model.biases:
         print(f"{key}: {model.biases[key].shape}")
     
-    # Exemple de propagation avant avec des données aléatoires
-    X_dummy = np.random.randn(5, config.input_size)  # 5 exemples, input_size features
-    output = model.forward(X_dummy)
-    print("Output of the forward pass : \n", output)
+    data_loader = DataLoader()
+    model = NeuralNet(config)
+    trainer_instance = trainer(config, data_loader, model)
+    trainer_instance.train()
+    model.save_model("breast_cancer_model.npz")
+    
