@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Training Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="connection-status disconnected" id="connectionStatus">
+        <div class="connection-indicator"></div>
+        <span>Disconnected</span>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Neural Network Training Visualizer</h1>
+            <p class="subtitle">Breast Cancer Classification · From Scratch Implementation</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-info">
+                <div class="status-indicator idle" id="statusIndicator"></div>
+                <span class="status-text" id="statusText">Ready to start training</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="startBtn" onclick="startTraining()">Start Training</button>
+            <button class="btn-danger" id="stopBtn" onclick="stopTraining()" disabled>Stop</button>
+            <button class="btn-secondary" id="resetBtn" onclick="resetTraining()">Reset</button>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h2><div class="card-icon"></div>Training Metrics</h2>
+                <div class="metric">
+                    <span class="metric-label">Current Epoch</span>
+                    <span class="metric-value" id="epoch">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Training Loss</span>
+                    <span class="metric-value" id="trainLoss">0.000</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Validation Loss</span>
+                    <span class="metric-value" id="valLoss">0.000</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><div class="card-icon"></div>Performance</h2>
+                <div class="metric">
+                    <span class="metric-label">Validation Accuracy</span>
+                    <span class="metric-value" id="accuracy">0.00%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Best Accuracy</span>
+                    <span class="metric-value value-positive" id="bestAccuracy">0.00%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Elapsed Time</span>
+                    <span class="metric-value" id="time">0s</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><div class="card-icon"></div>Configuration</h2>
+                <div class="metric">
+                    <span class="metric-label">Learning Rate</span>
+                    <span class="metric-value" id="learningRate" style="font-size: 1.2em;">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Architecture</span>
+                    <span class="metric-value" style="font-size: 1em;" id="architecture">—</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Epochs</span>
+                    <span class="metric-value" id="totalEpochs">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="network-viz">
+            <h2><div class="card-icon"></div>Network Architecture</h2>
+            <canvas id="networkCanvas"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h2><div class="card-icon"></div>Loss Evolution</h2>
+            <canvas id="lossChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <h2><div class="card-icon"></div>Accuracy Evolution</h2>
+            <canvas id="accuracyChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        let eventSource;
+        let startTime;
+        let bestAccuracy = 0;
+        let configData = null;
+        let networkLayers = [];
+
+        const chartColors = {
+            primary: '#3b82f6',
+            secondary: '#8b5cf6',
+            success: '#10b981',
+            warning: '#f59e0b',
+            grid: 'rgba(148, 163, 184, 0.1)',
+            text: '#cbd5e1'
+        };
+
+        const lossData = {
+            labels: [],
+            datasets: [{
+                label: 'Training Loss',
+                data: [],
+                borderColor: chartColors.primary,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4
+            }, {
+                label: 'Validation Loss',
+                data: [],
+                borderColor: chartColors.warning,
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4
+            }]
+        };
+
+        const accuracyData = {
+            labels: [],
+            datasets: [{
+                label: 'Validation Accuracy (%)',
+                data: [],
+                borderColor: chartColors.success,
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4
+            }]
+        };
+
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    labels: { 
+                        color: chartColors.text, 
+                        font: { size: 12, weight: '500' },
+                        padding: 16,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    titleColor: chartColors.text,
+                    bodyColor: chartColors.text,
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: true,
+                    boxPadding: 6
+                }
+            },
+            scales: {
+                x: { 
+                    ticks: { color: chartColors.text, font: { size: 11 } }, 
+                    grid: { color: chartColors.grid },
+                    border: { display: false }
+                },
+                y: { 
+                    ticks: { color: chartColors.text, font: { size: 11 } }, 
+                    grid: { color: chartColors.grid },
+                    border: { display: false }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        };
+
+        const lossChart = new Chart(document.getElementById('lossChart'), {
+            type: 'line',
+            data: lossData,
+            options: chartOptions
+        });
+
+        const accuracyChart = new Chart(document.getElementById('accuracyChart'), {
+            type: 'line',
+            data: accuracyData,
+            options: {
+                ...chartOptions,
+                scales: {
+                    ...chartOptions.scales,
+                    y: { 
+                        ...chartOptions.scales.y,
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        function drawNetwork() {
+            const canvas = document.getElementById('networkCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            const layers = networkLayers.length > 0 ? networkLayers : [30, 64, 32, 1];
+            const layerSpacing = canvas.width / (layers.length + 1);
+            const neuronRadius = 6;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            layers.forEach((neurons, layerIndex) => {
+                const x = layerSpacing * (layerIndex + 1);
+                const displayNeurons = Math.min(neurons, 10);
+                const verticalSpacing = canvas.height / (displayNeurons + 1);
+
+                for (let i = 0; i < displayNeurons; i++) {
+                    const y = verticalSpacing * (i + 1);
+
+                    if (layerIndex < layers.length - 1) {
+                        const nextDisplayNeurons = Math.min(layers[layerIndex + 1], 10);
+                        const nextVerticalSpacing = canvas.height / (nextDisplayNeurons + 1);
+                        for (let j = 0; j < nextDisplayNeurons; j++) {
+                            const nextY = nextVerticalSpacing * (j + 1);
+                            const nextX = layerSpacing * (layerIndex + 2);
+                            
+                            ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            ctx.lineTo(nextX, nextY);
+                            ctx.stroke();
+                        }
+                    }
+
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.beginPath();
+                    ctx.arc(x, y, neuronRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#60a5fa';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = '500 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(neurons, x, canvas.height - 15);
+            });
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch(`${API_URL}/config`);
+                configData = await response.json();
+                
+                document.getElementById('learningRate').textContent = configData.learning_rate;
+                document.getElementById('architecture').textContent = configData.architecture.join(' → ');
+                document.getElementById('totalEpochs').textContent = configData.epochs;
+                
+                networkLayers = configData.architecture;
+                drawNetwork();
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+
+        function connectSSE() {
+            eventSource = new EventSource(`${API_URL}/stream`);
+            
+            eventSource.onopen = () => {
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.className = 'connection-status connected';
+                statusEl.innerHTML = '<div class="connection-indicator"></div><span>Connected</span>';
+            };
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                updateUI(data);
+            };
+
+            eventSource.onerror = () => {
+                const statusEl = document.getElementById('connectionStatus');
+                statusEl.className = 'connection-status disconnected';
+                statusEl.innerHTML = '<div class="connection-indicator"></div><span>Disconnected</span>';
+            };
+        }
+
+        function updateUI(data) {
+            document.getElementById('epoch').textContent = data.current_epoch;
+            document.getElementById('trainLoss').textContent = data.train_loss.toFixed(4);
+            document.getElementById('valLoss').textContent = data.val_loss.toFixed(4);
+            document.getElementById('accuracy').textContent = data.accuracy.toFixed(2) + '%';
+            
+            if (configData) {
+                document.getElementById('progress').style.width = 
+                    (data.current_epoch / configData.epochs * 100) + '%';
+            }
+
+            if (data.accuracy > bestAccuracy) {
+                bestAccuracy = data.accuracy;
+                document.getElementById('bestAccuracy').textContent = data.accuracy.toFixed(2) + '%';
+            }
+
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (data.status === 'training') {
+                statusIndicator.className = 'status-indicator training';
+                statusText.textContent = 'Training in progress';
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            } else if (data.status === 'completed') {
+                statusIndicator.className = 'status-indicator completed';
+                statusText.textContent = 'Training completed';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            } else {
+                statusIndicator.className = 'status-indicator idle';
+                statusText.textContent = 'Ready to start training';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+
+            if (data.current_epoch % 10 === 0 && data.current_epoch > 0) {
+                lossData.labels.push(data.current_epoch);
+                lossData.datasets[0].data.push(data.train_loss);
+                lossData.datasets[1].data.push(data.val_loss);
+                accuracyData.labels.push(data.current_epoch);
+                accuracyData.datasets[0].data.push(data.accuracy);
+
+                if (lossData.labels.length > 50) {
+                    lossData.labels.shift();
+                    lossData.datasets[0].data.shift();
+                    lossData.datasets[1].data.shift();
+                    accuracyData.labels.shift();
+                    accuracyData.datasets[0].data.shift();
+                }
+
+                lossChart.update('none');
+                accuracyChart.update('none');
+            }
+
+            if (data.is_training && !startTime) {
+                startTime = Date.now();
+            }
+            if (data.is_training && startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('time').textContent = elapsed + 's';
+            }
+        }
+
+        async function startTraining() {
+            try {
+                startTime = Date.now();
+                const response = await fetch(`${API_URL}/start`, { method: 'POST' });
+                const result = await response.json();
+                console.log('Training started:', result);
+            } catch (error) {
+                console.error('Error starting training:', error);
+                alert('Error: Make sure the Flask server is running on port 5000');
+            }
+        }
+
+        async function stopTraining() {
+            try {
+                const response = await fetch(`${API_URL}/stop`, { method: 'POST' });
+                const result = await response.json();
+                console.log('Training stopped:', result);
+            } catch (error) {
+                console.error('Error stopping training:', error);
+            }
+        }
+
+        async function resetTraining() {
+            try {
+                const response = await fetch(`${API_URL}/reset`, { method: 'POST' });
+                const result = await response.json();
+                console.log('Training reset:', result);
+                
+                startTime = null;
+                bestAccuracy = 0;
+                document.getElementById('epoch').textContent = '0';
+                document.getElementById('trainLoss').textContent = '0.000';
+                document.getElementById('valLoss').textContent = '0.000';
+                document.getElementById('accuracy').textContent = '0.00%';
+                document.getElementById('bestAccuracy').textContent = '0.00%';
+                document.getElementById('time').textContent = '0s';
+                document.getElementById('progress').style.width = '0%';
+                
+                lossData.labels = [];
+                lossData.datasets[0].data = [];
+                lossData.datasets[1].data = [];
+                accuracyData.labels = [];
+                accuracyData.datasets[0].data = [];
+                
+                lossChart.update();
+                accuracyChart.update();
+            } catch (error) {
+                console.error('Error resetting training:', error);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            loadConfig();
+            connectSSE();
+            drawNetwork();
+        });
+        
+        window.addEventListener('resize', drawNetwork);
+    </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 from neural_net import NeuralNet
 from config import Config
 from data_loader import DataLoader
-
+import numpy as np
 class trainer:
     def __init__(self, config: Config, data_loader: DataLoader, model : NeuralNet):
         self.config = config
@@ -24,5 +24,11 @@ class trainer:
             if epoch % 40 == 0:
                 val_Y_hat = self.model.forward(X_val)
                 val_loss = self.model.compute_loss(val_Y_hat, Y_val)
+                evaluate = self.evaluate()
                 print(f"Epoch {epoch}, Training Loss: {loss}, Validation Loss: {val_loss}")
-            
+    
+    def evaluate(self):
+        X_val, Y_val = self.data_loader.get_val_data()
+        Y_pred = self.model.predict(X_val)
+        accuracy = np.mean(Y_pred == Y_val) * 100
+        print(f"Validation Accuracy: {accuracy}%")

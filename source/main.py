@@ -2,7 +2,6 @@ from neural_net import NeuralNet
 from config import Config
 from train import trainer
 from data_loader import DataLoader
-import numpy as np
 
 if __name__ == "__main__":
     config = Config()
@@ -20,4 +19,4 @@ if __name__ == "__main__":
     trainer_instance = trainer(config, data_loader, model)
     trainer_instance.train()
     model.save_model("breast_cancer_model.npz")
-    
+

@@ -1,6 +1,6 @@
 import numpy as np
 from config import Config
-np.random.seed(42)  # Pour la reproductibilité
+np.random.seed(Config.random_seed)  # Pour la reproductibilité
 
 class NeuralNet:
     def __init__(self, config : Config):

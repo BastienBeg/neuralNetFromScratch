@@ -4,22 +4,60 @@ Ce projet a un but purement pédagogique. Il consiste à implémenter un réseau
 
 ## Structure du projet
 
-On retrouve les fichiers suivants dans ce projet :
-- `neural_net.py` : Contient l'implémentation principale du réseau de neurones, y compris les classes et les fonctions pour la création, l'entraînement et l'évaluation du modèle.
-- `data_loader.py` : Fournit des fonctions pour charger et prétraiter les données utilisées pour entraîner le réseau de neurones.
-- `train.py` : Script principal pour entraîner le réseau de neurones en utilisant les données chargées.
-- `utils.py` : Contient des fonctions utilitaires pour diverses opérations, telles que le calcul de la perte et des métriques d'évaluation.
-- `main.py` : Point d'entrée du programme qui orchestre le chargement des données, l'entraînement du modèle et l'évaluation des performances.
-- `explore_data.ipynb` : Notebook Jupyter pour explorer et visualiser les données utilisées dans le projet.
-- `README.md` : Ce fichier, qui fournit une vue d'ensemble du projet.
-- `config.py` : Fichier de configuration pour définir les hyperparamètres du modèle et les paramètres d'entraînement.
+La structure du projet est organisée de la manière suivante :
+
+neuralNetFromScratch/
+├── LICENSE
+├── Neural Network Training Visualizer.pdf
+├── README.md
+├── requirements.txt
+└──source
+   └──app.py
+   └──config.py
+   └──data_loader.py
+   └──main.py
+   └──neural_net.py
+   └──train.py
+   └──explore_data
+      └──explore_data.ipynb       
+   └──templates
+      └──index.html
+      └──styles.css      
+    └──model
+       └──breast_cancer_model.npz    
+
+Dans ce projet, les fichiers principaux sont :
+- `neural_net.py` : Contient l'implémentation du réseau de neurones, y compris les fonctions de propagation avant et de rétropropagation.
+- `train.py` : Gère le processus d'entraînement du réseau de neurones, y compris le chargement des données, la boucle d'entraînement et l'évaluation du modèle.
+- `data_loader.py` : Contient des fonctions pour charger et prétraiter les données utilisées pour entraîner le réseau de neurones.
+- `config.py` : Fichier de configuration pour définir les hyperparamètres du modèle, tels que le taux d'apprentissage, le nombre d'époques, etc.
+- `app.py` : Programme principal pour exécuter l'application.
+- `index.html` : Contient le code HTML pour l'interface utilisateur de l'application.
 
 ## Datasets utilisé 
 
 Le projet utilise le dataset Breast cancer disponible sur sklearn pour entraîner et évaluer le réseau de neurones. Dont les caractéristiques sont les suivantes :
 - Nombre d'échantillons : 569
 - Nombre de caractéristiques : 30
-- Nombre de classes : 2 (malin et bénin)
+- Nombre de classes : 2 (grave et bénin)
+
+Le dataset représente des mesures de différentes caractéristiques des tumeurs mammaires, et l'objectif est de classer les tumeurs comme malignes (grave) ou bénignes (non grave) en fonction de ces caractéristiques.
+
+## Lancer l'application
+
+Pour exécuter le projet, assurez-vous d'avoir Python installé sur votre machine. Vous pouvez ensuite cloner le dépôt et installer les dépendances nécessaires (si applicable). Ensuite, vous pouvez lancer le script principal pour entraîner le réseau de neurones :
+
+```bash
+git clone https://github.com/BastienBeg/neuralNetFromScratch.git # cloner le dépôt
+
+cd neuralNetFromScratch # naviguer dans le répertoire du projet
+
+pip install -r requirements.txt # installer les dépendances
+
+python source/app.py # lancer l'application
+```
+
+Puis, ouvrez votre navigateur web et accédez à `http://localhost:5000` pour interagir avec l'application. (si ça ne fonctionne pas ouvrez le fichier `index.html` directement dans votre navigateur)
 
 ## Fonctionnement détaillé du réseau de neurones
 
@@ -119,9 +157,7 @@ On met à jour les poids et les biais comme suit :
 - W = W - learning_rate * dW
 - b = b - learning_rate * db
 
-
-
 ## Évaluation
 
-Après l'entraînement, le modèle est évalué sur un ensemble de test pour mesurer ses performances en termes de précision, rappel, F1-score, etc.
+Après l'entraînement, le modèle est évalué sur un ensemble de test pour mesurer ses performances en termes de précision et de perte sur le jeu de validation.
 
